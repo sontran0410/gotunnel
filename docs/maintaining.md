@@ -21,6 +21,7 @@ Every rule below exists because breaking it causes a failure that is hard to not
 | R11 | Every on-disk location comes from `internal/paths`. Unix socket paths must stay under ~100 bytes. Tests isolate themselves with `GOTUNNEL_HOME` and a short `GOTUNNEL_RUNTIME_DIR` | long paths fail with "invalid argument"; tests must not touch the real `~/.gotunnel` | `paths.RunDir`, e2e `newEnv` |
 | R12 | Defaults bind to `127.0.0.1`; never log tokens; the agent socket directory stays 0700 | the tunnel acts with the user's ssh identity | config defaults, `paths.EnsureDir` |
 | R13 | No new dependencies without strong reason (today: yamux and yaml) | every dependency must be cross-compiled into the agent and maintained | `go.mod` |
+| R14 | Every agent binary uploaded to a destination must be a **static** Linux ELF for the destination CPU: build agents with `CGO_ENABLED=0`, and never upload a binary without `checkAgentBinary` | a cgo build links the build machine's glibc and fails on older destinations with "version `GLIBC_2.34' not found". A plain `go install` on Linux produces exactly such a client, and the "same platform → upload this binary" shortcut would otherwise ship it | `cmd/gotunnel/installagent.go` (`checkAgentBinary`, `thisBinary`), `Makefile` (`agent`, `HOST_CGO`), `TestCheckAgentBinary`, `TestAgentPayloadRejectsUnusableBinary` |
 
 ## 2. Workflow
 
@@ -157,7 +158,7 @@ To simulate a slow path, set `fa.pipe = func() (net.Conn, net.Conn) { sl := netu
 | `internal/session/session_test.go` | ring buffer (randomized against a reference), transfer, ~140 forced link failures mid-frame in both directions, BYE, dead-link detection, backpressure while detached, bad offsets, `Resume` ordering |
 | `internal/sched/sched_test.go` | frame parsing/splitting/order, interactive frames jumping a bulk queue, weighted share, RST injection, controller (BDP tracking, growth, RTT probe), yamux over sched over session under link failures |
 | `internal/service/service_test.go` | plist, systemd unit and crontab generation |
-| `cmd/gotunnel/installagent_test.go` | platform parsing, remote install path, which versions can be fetched, and cross-compiling the agent from this checkout the way `install-agent` does for `go install` binaries (skipped with `-short`) |
+| `cmd/gotunnel/installagent_test.go` | platform parsing, remote install path, which versions can be fetched; static/dynamic/wrong-CPU/wrong-OS detection with synthetic ELF files (`elfImage`) and `--binary` rejection; the glibc error hint; and cross-compiling the agent from this checkout the way `install-agent` does for `go install` binaries (skipped with `-short`) |
 | `internal/client/client_test.go` | client + agentd in one process: on-demand dial and idle close, a 4 MiB transfer across ~30 resumes, agent restart (graceful and crash), SOCKS (including refused), reverse forwards across link loss, runtime forward changes, dial failure |
 | `internal/client/latency_test.go` | keystroke latency and throughput during a bulk download over two simulated slow links, with and without in-flight control (skipped with `-short`) |
 | `test/e2e/e2e_test.go` | the real binary with a fake ssh: install-agent (with shell noise), doctor, `up -d`, a second `up` refused, resume after `reconnect`, SOCKS, reverse, runtime forward add/rm, reload, agent restart → new session, `down` → agent drops the session |
@@ -208,7 +209,7 @@ Lab specifics (`test/lab`):
 
   The Makefile does not override it, so client and agent built from the same commit always match. Client and agent compare it only to warn. `version.Proto` is the compatibility number (R9).
 - **`make build`** produces `bin/gotunnel` for this machine, about 15 MB including two gzipped Linux agents. `make agent` produces static Linux binaries in `dist/`.
-- **`go install` and plain `go build` binaries** embed no agent. For a destination with a different platform, `install-agent` then calls `buildAgent` (`cmd/gotunnel/installagent.go`):
+- **`go install` and plain `go build` binaries** embed no agent. When the destination has the same platform as the client, `install-agent` uploads the client itself, but only if `checkAgentBinary` accepts it (a Linux client installed without `CGO_ENABLED=0` is dynamically linked and is skipped; R14). Otherwise it calls `buildAgent` (`cmd/gotunnel/installagent.go`):
   1. creates a temporary module that requires this binary's module at its version;
   2. cross-compiles `cmd/gotunnel` with `CGO_ENABLED=0`, stamping the same version with `-X`.
 

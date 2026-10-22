@@ -20,9 +20,16 @@ help:
 	@echo "make lab-test  Docker lab with real sshd and network faults (needs Docker)"
 	@echo "make clean     remove build outputs"
 
+# On Linux the client binary must be static (CGO_ENABLED=0): it is uploaded as
+# the agent to destinations with the same platform, and a cgo build would link
+# the build machine's glibc and fail on older destinations.
+ifeq ($(shell go env GOOS),linux)
+HOST_CGO := CGO_ENABLED=0
+endif
+
 # Client binary for this machine, with the Linux agents embedded for install-agent.
 build: payload
-	go build -trimpath -tags embedagent -ldflags '$(LDFLAGS)' -o bin/gotunnel ./cmd/gotunnel
+	$(HOST_CGO) go build -trimpath -tags embedagent -ldflags '$(LDFLAGS)' -o bin/gotunnel ./cmd/gotunnel
 
 # Static Linux agent binaries.
 agent:

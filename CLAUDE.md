@@ -32,6 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `sched.Conn.Write` only queues and never blocks. The scheduler never reorders frames within a stream.
 - The session ACKs only stored bytes. `Session.Resume` writes WELCOME before attaching. Never hold `Session.mu` during link I/O.
 - Agent stdout is the protocol channel; the relay logs only to stderr.
+- Agent binaries uploaded to destinations must be static (`CGO_ENABLED=0`) and pass `checkAgentBinary`; a cgo build fails on older destinations with `GLIBC_2.34 not found`.
 - Keep the ssh options in `transport.SSH.Args`. `sshLink.Close` closes stdin before killing, so BYE gets flushed.
 - Wire changes are additive (zero value means old behaviour); anything else bumps `version.Proto`.
 - Paths come from `internal/paths`. Tests set `GOTUNNEL_HOME` and a short `GOTUNNEL_RUNTIME_DIR` (unix socket path limit).

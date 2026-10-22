@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"debug/elf"
 	"errors"
 	"fmt"
 	"io"
@@ -88,7 +89,8 @@ func cmdInstallAgent(args []string) error {
 	if err != nil {
 		return err
 	}
-	cmd.Stderr = os.Stderr
+	var remoteErr bytes.Buffer
+	cmd.Stderr = io.MultiWriter(os.Stderr, &remoteErr)
 	fmt.Fprintf(os.Stderr, "connecting to %s (this can take a while)...\n", cfg.SSH.Host)
 	if err := cmd.Start(); err != nil {
 		return err
@@ -135,7 +137,7 @@ func cmdInstallAgent(args []string) error {
 	rest, _ := io.ReadAll(out)
 	werr := cmd.Wait()
 	if err != nil || werr != nil {
-		return fmt.Errorf("upload failed: %v", errors.Join(err, werr))
+		return fmt.Errorf("upload failed: %v%s", errors.Join(err, werr), installHint(remoteErr.String()))
 	}
 	fmt.Printf("installed: %s\n", strings.TrimSpace(string(rest)))
 	fmt.Println("a running agentd without sessions switches to the new version on the next connection")
@@ -174,41 +176,130 @@ func parsePlatform(s string) (goos, goarch string, err error) {
 // binary itself when the destination has the same platform; a build of the
 // same module version made with the local Go toolchain (binaries installed
 // with "go install" embed no payload).
+//
+// Every candidate goes through checkAgentBinary. In particular a Linux client
+// installed with a plain "go install" is dynamically linked against its own
+// glibc; uploading it to an older destination fails with "version
+// `GLIBC_2.34' not found", so such a binary is skipped in favour of a static
+// build.
 func agentPayload(binary, goos, goarch string) ([]byte, string, error) {
 	if binary != "" {
 		raw, err := os.ReadFile(binary)
 		if err != nil {
 			return nil, "", err
 		}
+		if err := checkAgentBinary(raw, goos, goarch); err != nil {
+			return nil, "", fmt.Errorf("%s: %w", binary, err)
+		}
 		gz, err := gzipBytes(raw)
 		return gz, binary, err
 	}
 	if p, ok := agentbin.Payload(goos, goarch); ok {
+		raw, err := gunzipBytes(p)
+		if err == nil {
+			err = checkAgentBinary(raw, goos, goarch)
+		}
+		if err != nil {
+			return nil, "", fmt.Errorf("embedded %s/%s agent: %w", goos, goarch, err)
+		}
 		return p, "embedded", nil
 	}
+	var notUsable error // why this binary was not used as the agent
 	if goos == runtime.GOOS && goarch == runtime.GOARCH {
-		exe, err := os.Executable()
-		if err != nil {
-			return nil, "", err
+		gz, err := thisBinary(goos, goarch)
+		if err == nil {
+			return gz, "this binary", nil
 		}
-		raw, err := os.ReadFile(exe)
-		if err != nil {
-			return nil, "", err
-		}
-		gz, err := gzipBytes(raw)
-		return gz, "this binary", err
+		notUsable = err
+		fmt.Fprintf(os.Stderr, "not uploading this binary as the agent: %v\n", err)
 	}
+	const hint = "install gotunnel with 'CGO_ENABLED=0 go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest' or 'make build' (static), or pass --binary with a static agent"
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
-		return nil, "", fmt.Errorf("no agent binary for %s/%s; build gotunnel with 'make build' or pass --binary", goos, goarch)
+		return nil, "", fmt.Errorf("no usable agent binary for %s/%s: %w\n%s", goos, goarch, errors.Join(notUsable, errors.New("no build information")), hint)
 	}
 	fmt.Fprintf(os.Stderr, "no embedded agent for %s/%s; building %s with your Go toolchain...\n", goos, goarch, bi.Main.Version)
 	raw, err := buildAgent(bi.Main.Path, bi.Main.Version, bi.Path, "", goos, goarch)
+	if err == nil {
+		err = checkAgentBinary(raw, goos, goarch)
+	}
 	if err != nil {
-		return nil, "", fmt.Errorf("no agent binary for %s/%s: %w\nbuild gotunnel with 'make build' (embeds Linux agents) or pass --binary", goos, goarch, err)
+		return nil, "", fmt.Errorf("no usable agent binary for %s/%s: %w\n%s", goos, goarch, errors.Join(notUsable, err), hint)
 	}
 	gz, err := gzipBytes(raw)
 	return gz, "built locally", err
+}
+
+// thisBinary returns the running executable, gzipped, if it can serve as the
+// agent for goos/goarch.
+func thisBinary(goos, goarch string) ([]byte, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	raw, err := os.ReadFile(exe)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkAgentBinary(raw, goos, goarch); err != nil {
+		return nil, err
+	}
+	return gzipBytes(raw)
+}
+
+// checkAgentBinary verifies that raw can run on a destination of goos/goarch.
+// For Linux that means an ELF executable for the right CPU that is statically
+// linked: a dynamically linked Go binary (built with cgo) needs the build
+// machine's glibc and fails on older destinations with errors such as
+// "version `GLIBC_2.34' not found".
+func checkAgentBinary(raw []byte, goos, goarch string) error {
+	if goos != "linux" {
+		return nil
+	}
+	f, err := elf.NewFile(bytes.NewReader(raw))
+	if err != nil {
+		return errors.New("not a Linux executable (ELF); was it built for another operating system?")
+	}
+	defer f.Close()
+	machines := map[string]elf.Machine{"amd64": elf.EM_X86_64, "arm64": elf.EM_AARCH64}
+	if want, ok := machines[goarch]; ok && f.Machine != want {
+		built := f.Machine.String()
+		for arch, m := range machines {
+			if m == f.Machine {
+				built = arch
+			}
+		}
+		return fmt.Errorf("built for %s but the destination is %s", built, goarch)
+	}
+	for _, p := range f.Progs {
+		if p.Type == elf.PT_INTERP {
+			interp, _ := io.ReadAll(io.LimitReader(p.Open(), 256))
+			return fmt.Errorf("dynamically linked (needs %s and the destination's C library, so it fails on older systems); build with CGO_ENABLED=0 to get a static binary",
+				strings.TrimRight(string(interp), "\x00"))
+		}
+	}
+	return nil
+}
+
+// installHint explains common failures of the remote install script.
+func installHint(stderr string) string {
+	switch {
+	case strings.Contains(stderr, "GLIBC") || strings.Contains(stderr, "libc.so"):
+		return "\nhint: the uploaded binary is dynamically linked and needs a newer libc than the destination has. " +
+			"gotunnel's own builds are static: use a gotunnel built with 'make build' or 'CGO_ENABLED=0 go install', or pass --binary with a static agent"
+	case strings.Contains(stderr, "Exec format error"):
+		return "\nhint: the binary does not match the destination's CPU or operating system"
+	}
+	return ""
+}
+
+func gunzipBytes(gz []byte) ([]byte, error) {
+	zr, err := gzip.NewReader(bytes.NewReader(gz))
+	if err != nil {
+		return nil, err
+	}
+	defer zr.Close()
+	return io.ReadAll(zr)
 }
 
 // buildAgent compiles package pkg of module mod at version ver for

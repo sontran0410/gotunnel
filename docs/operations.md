@@ -98,6 +98,14 @@ Every command accepts `-h`. Exit codes: 0 ok, 1 error, 2 usage, 3 "not running" 
 | `gotunnel agent run [--idle-exit 0s] [--managed M] [--log-level L]` | Foreground agentd, for service managers |
 | `gotunnel agent stdio [--standalone]` | The relay; ssh runs it. `--standalone` serves the link in-process (no resume; for debugging) |
 
+## Agent requirements (the destination)
+
+- Linux on **amd64** or **arm64**. The agent is a **static binary**: it does not use the destination's glibc or any other library, so an old or minimal distribution (CentOS 7, Alpine, BusyBox systems) is fine.
+- Linux kernel **3.2 or newer**. This is the Go runtime's minimum since Go 1.24 (see https://go.dev/wiki/MinimumRequirements); older kernels such as CentOS 5's 2.6.18 are unsupported. Containers share the host's kernel, so Docker does not help with this.
+- `install-agent` needs `sh`, `uname`, `mkdir`, `dirname`, `head`, `gunzip`, `chmod` and `mv` on the destination, which any normal system has.
+- No root, and nothing is installed outside `~/.gotunnel`.
+- `install-agent` checks every binary before uploading it (Linux ELF, right CPU, static) and refuses anything else, so a binary linked against the client's glibc is never uploaded.
+
 ## Running in the background
 
 | | Client (macOS) | Agent (Linux) |
@@ -158,6 +166,7 @@ Run `gotunnel doctor` first. It checks every item below and prints a hint.
 | `agent rejected handshake: proto` | agent and client protocol versions differ | `gotunnel install-agent` |
 | `agent version differs from client` (warning) | the agent is an older build | `gotunnel install-agent`; the idle agentd restarts by itself |
 | `ssh: … not found` (exit 127) / doctor: `not installed on the destination` | no agent binary at `remote_command` | `gotunnel install-agent` |
+| ``version `GLIBC_2.34' not found (required by …/gotunnel)`` on the destination | a dynamically linked binary was uploaded. This happened with gotunnel ≤ v0.1.0 installed on Linux by a plain `go install` (cgo links the client's glibc, and that binary was uploaded as the agent). | Update gotunnel (newer versions refuse such binaries and build a static agent) and run `gotunnel install-agent` again. On Linux install with `CGO_ENABLED=0 go install …`. If the message names a different file, the problem is not gotunnel: something in the destination's shell startup needs a newer glibc; check with `ssh <alias> true` |
 | `session could not be resumed; open connections are lost` | the outage was longer than `session_ttl`, or agentd restarted | expected; raise `session_ttl` for longer outages |
 | `gotunnel is already running (pid N)` | another instance holds the lock | `gotunnel down`, or `gotunnel status` to see who runs it |
 | forward `! listen tcp …: address already in use (retrying)` | another program owns the port | free the port or change `listen`; gotunnel retries every 30s |
