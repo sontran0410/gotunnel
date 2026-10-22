@@ -197,7 +197,7 @@ Lab specifics (`test/lab`):
   - a test that hangs points to lock order (R5) or a blocking write (R2);
   - "only N link failures" means the test stopped exercising resume (it ran too fast). Make the test slower; do not loosen the assertion.
 
-## 7. Build and versions
+## 7. Build, versions and releases
 
 - The module path is `github.com/sontran0410/gotunnel`. Users install with `go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest`.
 - **`version.Version`** comes from the module version that the Go toolchain records in the build info:
@@ -214,6 +214,27 @@ Lab specifics (`test/lab`):
 
   Modified checkouts (`+dirty`) cannot be fetched by version and get an error telling the user to use `make build` or `--binary`. `TestBuildAgentFromLocalModule` exercises this path against the checkout.
 - **Supported Go versions.** `go.mod` declares `go 1.25`, and the code is tested with 1.25.0, 1.26.5 and 1.27.3. Check another release with `GOTOOLCHAIN=go1.26.5 go test -race ./...`; the toolchain is downloaded automatically. Do not use library APIs newer than the `go` directive (`go vet` under the old toolchain will catch them).
+
+### Releasing a version
+
+Tags are what `go install …@latest` resolves to. They follow semantic versioning:
+- patch (`v0.1.1`) for fixes;
+- minor (`v0.2.0`) for features or compatible protocol additions;
+- while below v1, also minor when `version.Proto` changes. The notes must say that users have to run `gotunnel install-agent`.
+
+1. On a clean, pushed `main`, make sure `make check` and `make test` pass. Optionally also run `GOTOOLCHAIN=go1.25.0 go test -short ./...`.
+2. Tag and push:
+   ```sh
+   git tag -a vX.Y.Z -m "gotunnel vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+3. Verify the published version:
+   ```sh
+   GOBIN=$(mktemp -d) go install github.com/sontran0410/gotunnel/cmd/gotunnel@vX.Y.Z
+   # then run "$GOBIN/gotunnel version"; it must print vX.Y.Z
+   ```
+   `@latest` switches to the new tag once the module proxy refreshes its list (usually within minutes).
+4. Never move or delete a published tag. The Go checksum database has already recorded its contents, so a moved tag breaks `go install` for everyone. Publish a new version instead.
 
 ## 8. Known gaps and ideas
 

@@ -89,6 +89,10 @@ On the destination, the agent starts automatically when the client connects. To 
 - [docs/protocol.md](docs/protocol.md): wire formats and compatibility rules.
 - [docs/maintaining.md](docs/maintaining.md): rules, recipes and the testing guide for changing the code.
 
+## License
+
+MIT, see [LICENSE](LICENSE).
+
 ## Development
 
 ```sh
