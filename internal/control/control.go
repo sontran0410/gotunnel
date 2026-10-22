@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/config"
 )
 
 // API is implemented by the daemon.

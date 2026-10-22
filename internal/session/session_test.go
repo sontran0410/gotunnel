@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"gotunnel/internal/netutil"
+	"github.com/sontran0410/gotunnel/internal/netutil"
 )
 
 func TestRingRandomOps(t *testing.T) {

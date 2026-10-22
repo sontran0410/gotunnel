@@ -1,5 +1,7 @@
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.1.0-dev)
-LDFLAGS := -s -w -X gotunnel/internal/version.Version=$(VERSION)
+# The version comes from the module version the Go toolchain records (git tag
+# or pseudo-version), the same as for "go install", so client and agent builds
+# from the same commit always match.
+LDFLAGS := -s -w
 PAYLOAD := internal/agentbin/payload
 AGENT_ARCHS := amd64 arm64
 

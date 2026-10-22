@@ -20,11 +20,11 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"gotunnel/internal/proto"
-	"gotunnel/internal/sched"
-	"gotunnel/internal/session"
-	"gotunnel/internal/tunnel"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/sched"
+	"github.com/sontran0410/gotunnel/internal/session"
+	"github.com/sontran0410/gotunnel/internal/tunnel"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 // Options configures agentd.

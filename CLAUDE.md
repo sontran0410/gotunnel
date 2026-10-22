@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`gotunnel` is a single Go binary that keeps many TCP port forwards alive between a client machine and a destination that is reachable only through slow ssh jump hosts. It runs `ssh <alias> 'gotunnel agent stdio'` once and multiplexes every forward over it (yamux). When the link breaks, it resumes the session so open connections survive. Nothing is installed on the jump hosts; the same binary runs on the destination as the agent.
+`gotunnel` (module `github.com/sontran0410/gotunnel`) is a single Go binary that keeps many TCP port forwards alive between a client machine and a destination that is reachable only through slow ssh jump hosts. It runs `ssh <alias> 'gotunnel agent stdio'` once and multiplexes every forward over it (yamux). When the link breaks, it resumes the session so open connections survive. Nothing is installed on the jump hosts; the same binary runs on the destination as the agent.
 
 ## Read before changing code
 
@@ -19,7 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `make test` — every test with `-race`, including the ~50s latency benchmark.
 - `go test -race -run TestName ./internal/client/` — runs a single test.
 - `make e2e` — the real binary with a fake ssh: install-agent, daemon, control API, relay, auto-started agentd.
-- `make build` — `bin/gotunnel` with the Linux agents embedded. `go build ./cmd/gotunnel` builds without them.
+- `make build` — `bin/gotunnel` with the Linux agents embedded. `go build ./cmd/gotunnel` and `go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest` build without them, and `install-agent` then cross-compiles the agent with the local Go toolchain.
+- `GOTOOLCHAIN=go1.25.0 go test -short ./...` — checks the oldest supported Go (the `go` directive is 1.25; 1.25.0, 1.26.5 and 1.27.3 are tested).
 - `make lab-test` — Docker lab with real sshd, a TLS ProxyCommand hop and toxiproxy faults.
   - Needs Docker; on this Mac that is `colima start`. Stop Colima again when done.
   - Remove the lab with `make lab-down`.

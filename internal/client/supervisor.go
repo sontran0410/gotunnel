@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"gotunnel/internal/proto"
-	"gotunnel/internal/session"
-	"gotunnel/internal/transport"
-	"gotunnel/internal/tunnel"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/session"
+	"github.com/sontran0410/gotunnel/internal/transport"
+	"github.com/sontran0410/gotunnel/internal/tunnel"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 // State of the transport.

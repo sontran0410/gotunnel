@@ -14,10 +14,10 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"gotunnel/internal/netutil"
-	"gotunnel/internal/proto"
-	"gotunnel/internal/sched"
-	"gotunnel/internal/session"
+	"github.com/sontran0410/gotunnel/internal/netutil"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/sched"
+	"github.com/sontran0410/gotunnel/internal/session"
 )
 
 // Params configures one end of a session.

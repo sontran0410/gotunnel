@@ -32,7 +32,7 @@ Every byte of the session is numbered, and both sides keep unacknowledged bytes.
 ## Requirements
 
 **Client (your machine)**
-- macOS or Linux.
+- macOS or Linux, and Go 1.25 or newer to install (tested with 1.25.0, 1.26.5 and 1.27.3).
 - The OpenSSH client.
 - A single `ssh <alias>` must reach the destination (`ProxyJump`/`ProxyCommand` in `~/.ssh/config`) without typing anything. Use keys loaded in ssh-agent or the macOS keychain; a daemon cannot type passphrases.
 - If you have never connected before, connect once by hand to accept the host keys.
@@ -42,21 +42,31 @@ Every byte of the session is numbered, and both sides keep unacknowledged bytes.
 - `sh`, `gunzip` and `head` (present on any normal system).
 - No root needed.
 
+## Install
+
+```sh
+go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest
+```
+
+This puts `gotunnel` in `$(go env GOPATH)/bin` (or `$GOBIN`). Binaries installed this way do not embed the Linux agent. When `gotunnel install-agent` needs one, it builds the same version for the destination with your Go toolchain, so `go` must be on your PATH and able to download modules.
+
+Alternatively, build from a checkout with `make build`. That produces `bin/gotunnel` with the Linux amd64/arm64 agents embedded, so no Go toolchain is needed afterwards.
+
 ## Quick start
 
 ```sh
-make build                                   # bin/gotunnel, with the Linux agents embedded
 mkdir -p ~/.config/gotunnel
-cp examples/config.yaml ~/.config/gotunnel/config.yaml
-$EDITOR ~/.config/gotunnel/config.yaml       # set ssh.host and your forwards
+curl -fsSL https://raw.githubusercontent.com/sontran0410/gotunnel/main/examples/config.yaml \
+  -o ~/.config/gotunnel/config.yaml            # or copy examples/config.yaml from a checkout
+$EDITOR ~/.config/gotunnel/config.yaml         # set ssh.host and your forwards
 
-bin/gotunnel install-agent    # uploads the agent through ssh (one ssh connection, ~3 MB)
-bin/gotunnel doctor           # checks every piece and explains problems
-bin/gotunnel service install  # starts at login, restarts after crashes
-bin/gotunnel status
+gotunnel install-agent    # uploads the agent through ssh (one ssh connection, ~3 MB)
+gotunnel doctor           # checks every piece and explains problems
+gotunnel service install  # starts at login, restarts after crashes
+gotunnel status
 ```
 
-Use `bin/gotunnel up -d` instead of `service install` to start it by hand. `bin/gotunnel down` stops it.
+Use `gotunnel up -d` instead of `service install` to start it by hand. `gotunnel down` stops it.
 
 ## Everyday commands
 

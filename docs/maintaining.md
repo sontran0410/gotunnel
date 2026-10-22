@@ -127,7 +127,7 @@ Notes:
 - Unit tests cover file generation (`service_test.go`). Installing for real changes the user's machine, so uninstall after testing.
 
 ### 4.11 Change the embedded agent build
-- `make payload` builds `dist/gotunnel-linux-{amd64,arm64}` (static, `-trimpath -s -w`) and gzips them into `internal/agentbin/payload/`. `make build` embeds them with `-tags embedagent`.
+- `make payload` builds `dist/gotunnel-linux-{amd64,arm64}` (static, `-trimpath -s -w`) and gzips them into `internal/agentbin/payload/`. `make build` embeds them with `-tags embedagent`. Binaries without the tag fall back to building the agent with the local Go toolchain (section 7).
 - To add an architecture, extend `AGENT_ARCHS` in the `Makefile` and `parsePlatform` in `cmd/gotunnel/installagent.go`.
 
 ### 4.12 Write an in-process integration test
@@ -157,6 +157,7 @@ To simulate a slow path, set `fa.pipe = func() (net.Conn, net.Conn) { sl := netu
 | `internal/session/session_test.go` | ring buffer (randomized against a reference), transfer, ~140 forced link failures mid-frame in both directions, BYE, dead-link detection, backpressure while detached, bad offsets, `Resume` ordering |
 | `internal/sched/sched_test.go` | frame parsing/splitting/order, interactive frames jumping a bulk queue, weighted share, RST injection, controller (BDP tracking, growth, RTT probe), yamux over sched over session under link failures |
 | `internal/service/service_test.go` | plist, systemd unit and crontab generation |
+| `cmd/gotunnel/installagent_test.go` | platform parsing, remote install path, which versions can be fetched, and cross-compiling the agent from this checkout the way `install-agent` does for `go install` binaries (skipped with `-short`) |
 | `internal/client/client_test.go` | client + agentd in one process: on-demand dial and idle close, a 4 MiB transfer across ~30 resumes, agent restart (graceful and crash), SOCKS (including refused), reverse forwards across link loss, runtime forward changes, dial failure |
 | `internal/client/latency_test.go` | keystroke latency and throughput during a bulk download over two simulated slow links, with and without in-flight control (skipped with `-short`) |
 | `test/e2e/e2e_test.go` | the real binary with a fake ssh: install-agent (with shell noise), doctor, `up -d`, a second `up` refused, resume after `reconnect`, SOCKS, reverse, runtime forward add/rm, reload, agent restart → new session, `down` → agent drops the session |
@@ -198,9 +199,21 @@ Lab specifics (`test/lab`):
 
 ## 7. Build and versions
 
-- `version.Version` comes from `git describe --tags --always --dirty` through `-ldflags` in the `Makefile`. Client and agent compare it only to warn. `version.Proto` is the compatibility number (R9).
-- `make build` produces `bin/gotunnel` for this machine (about 15 MB including two gzipped Linux agents). `make agent` produces static Linux binaries in `dist/`.
-- `go build ./cmd/gotunnel` also works but cannot `install-agent` to Linux (no payload). It can install to a destination with the same OS and architecture, using its own binary.
+- The module path is `github.com/sontran0410/gotunnel`. Users install with `go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest`.
+- **`version.Version`** comes from the module version that the Go toolchain records in the build info:
+  - a tag such as `v0.2.0` when installed with `go install …@v0.2.0`;
+  - a pseudo-version for an untagged commit;
+  - a `+dirty` suffix for a checkout with uncommitted changes;
+  - `dev` when no information exists.
+
+  The Makefile does not override it, so client and agent built from the same commit always match. Client and agent compare it only to warn. `version.Proto` is the compatibility number (R9).
+- **`make build`** produces `bin/gotunnel` for this machine, about 15 MB including two gzipped Linux agents. `make agent` produces static Linux binaries in `dist/`.
+- **`go install` and plain `go build` binaries** embed no agent. For a destination with a different platform, `install-agent` then calls `buildAgent` (`cmd/gotunnel/installagent.go`):
+  1. creates a temporary module that requires this binary's module at its version;
+  2. cross-compiles `cmd/gotunnel` with `CGO_ENABLED=0`, stamping the same version with `-X`.
+
+  Modified checkouts (`+dirty`) cannot be fetched by version and get an error telling the user to use `make build` or `--binary`. `TestBuildAgentFromLocalModule` exercises this path against the checkout.
+- **Supported Go versions.** `go.mod` declares `go 1.25`, and the code is tested with 1.25.0, 1.26.5 and 1.27.3. Check another release with `GOTOOLCHAIN=go1.26.5 go test -race ./...`; the toolchain is downloaded automatically. Do not use library APIs newer than the `go` directive (`go vet` under the old toolchain will catch them).
 
 ## 8. Known gaps and ideas
 

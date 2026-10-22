@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"gotunnel/internal/agent"
-	"gotunnel/internal/client"
-	"gotunnel/internal/config"
-	"gotunnel/internal/proto"
-	"gotunnel/internal/transport"
+	"github.com/sontran0410/gotunnel/internal/agent"
+	"github.com/sontran0410/gotunnel/internal/client"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/transport"
 )
 
 type logWriter struct{ t *testing.T }

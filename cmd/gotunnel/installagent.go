@@ -9,15 +9,17 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	"gotunnel/internal/agentbin"
-	"gotunnel/internal/config"
-	"gotunnel/internal/daemon"
+	"github.com/sontran0410/gotunnel/internal/agentbin"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/daemon"
 )
 
 // installScript runs on the destination. It prints the platform, reads the
@@ -168,6 +170,10 @@ func parsePlatform(s string) (goos, goarch string, err error) {
 }
 
 // agentPayload returns the gzipped binary to upload and where it came from.
+// Sources, in order: --binary; the payload embedded by "make build"; this
+// binary itself when the destination has the same platform; a build of the
+// same module version made with the local Go toolchain (binaries installed
+// with "go install" embed no payload).
 func agentPayload(binary, goos, goarch string) ([]byte, string, error) {
 	if binary != "" {
 		raw, err := os.ReadFile(binary)
@@ -192,11 +198,70 @@ func agentPayload(binary, goos, goarch string) ([]byte, string, error) {
 		gz, err := gzipBytes(raw)
 		return gz, "this binary", err
 	}
-	embedded := strings.Join(agentbin.Embedded(), ", ")
-	if embedded == "" {
-		embedded = "none"
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return nil, "", fmt.Errorf("no agent binary for %s/%s; build gotunnel with 'make build' or pass --binary", goos, goarch)
 	}
-	return nil, "", fmt.Errorf("no agent binary for %s/%s (embedded: %s); build with 'make build' or pass --binary", goos, goarch, embedded)
+	fmt.Fprintf(os.Stderr, "no embedded agent for %s/%s; building %s with your Go toolchain...\n", goos, goarch, bi.Main.Version)
+	raw, err := buildAgent(bi.Main.Path, bi.Main.Version, bi.Path, "", goos, goarch)
+	if err != nil {
+		return nil, "", fmt.Errorf("no agent binary for %s/%s: %w\nbuild gotunnel with 'make build' (embeds Linux agents) or pass --binary", goos, goarch, err)
+	}
+	gz, err := gzipBytes(raw)
+	return gz, "built locally", err
+}
+
+// buildAgent compiles package pkg of module mod at version ver for
+// goos/goarch inside a temporary module and returns the binary. The version
+// is stamped explicitly because the temporary module is the main module of
+// that build. replaceDir, if set, points mod at a local directory (tests).
+func buildAgent(mod, ver, pkg, replaceDir, goos, goarch string) ([]byte, error) {
+	if replaceDir == "" && !fetchableVersion(ver) {
+		return nil, fmt.Errorf("this binary's version %q is not a published module version (install with 'go install %s@latest')", ver, pkg)
+	}
+	goBin, err := exec.LookPath("go")
+	if err != nil {
+		return nil, errors.New("no Go toolchain in PATH")
+	}
+	dir, err := os.MkdirTemp("", "gotunnel-agent-build")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	goCmd := func(env []string, args ...string) error {
+		cmd := exec.Command(goBin, args...)
+		cmd.Dir = dir
+		// Ignore the caller's workspace and flags (e.g. -mod=vendor).
+		cmd.Env = append(os.Environ(), append([]string{"GOWORK=off", "GOFLAGS="}, env...)...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("go %s: %v\n%s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+		}
+		return nil
+	}
+	if err := goCmd(nil, "mod", "init", "gotunnel-agent-build"); err != nil {
+		return nil, err
+	}
+	edit := []string{"mod", "edit", "-require=" + mod + "@" + ver}
+	if replaceDir != "" {
+		edit = append(edit, "-replace="+mod+"="+replaceDir)
+	}
+	if err := goCmd(nil, edit...); err != nil {
+		return nil, err
+	}
+	out := filepath.Join(dir, "gotunnel")
+	ldflags := "-s -w -X " + mod + "/internal/version.Version=" + ver
+	env := []string{"GOOS=" + goos, "GOARCH=" + goarch, "CGO_ENABLED=0"}
+	if err := goCmd(env, "build", "-mod=mod", "-trimpath", "-ldflags="+ldflags, "-o", out, pkg); err != nil {
+		return nil, err
+	}
+	return os.ReadFile(out)
+}
+
+// fetchableVersion reports whether v names a module version that the Go
+// toolchain can download (not a local or modified build).
+func fetchableVersion(v string) bool {
+	return strings.HasPrefix(v, "v") && !strings.Contains(v, "+")
 }
 
 func gzipBytes(raw []byte) ([]byte, error) {

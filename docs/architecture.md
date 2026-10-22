@@ -176,7 +176,7 @@ Measured with `internal/client/latency_test.go`, 1-byte echo through an interact
   - systemd --user unit (`Restart=on-failure`) with `loginctl enable-linger`.
   - Otherwise a crontab `@reboot` line tagged `# gotunnel:<name>`.
 - **`internal/control`**: HTTP+JSON on `run/ctl.sock` (mode 0600). Endpoints are listed in [protocol.md](protocol.md#7-client-control-api).
-- **`internal/agentbin`**: gzipped Linux agents embedded with build tag `embedagent` (`make build`). Plain builds embed nothing.
+- **`internal/agentbin`**: gzipped Linux agents embedded with build tag `embedagent` (`make build`). Plain builds, including `go install`, embed nothing; `install-agent` then cross-compiles the same module version with the local Go toolchain (`buildAgent`).
 - **`cmd/gotunnel`**: one file per command group. `install-agent` uploads in a single ssh round trip:
   1. a remote script prints a marker and `uname -sm`;
   2. it reads the payload size and the gzipped binary from stdin;

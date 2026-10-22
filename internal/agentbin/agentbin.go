@@ -14,6 +14,3 @@ func Name(goos, goarch string) string {
 func Payload(goos, goarch string) ([]byte, bool) {
 	return payload(Name(goos, goarch))
 }
-
-// Embedded lists the embedded payloads.
-func Embedded() []string { return embedded() }

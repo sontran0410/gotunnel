@@ -13,8 +13,8 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"gotunnel/internal/netutil"
-	"gotunnel/internal/session"
+	"github.com/sontran0410/gotunnel/internal/netutil"
+	"github.com/sontran0410/gotunnel/internal/session"
 )
 
 func yamuxFrame(typ byte, flags uint16, id uint32, body []byte, length uint32) []byte {

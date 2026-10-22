@@ -15,7 +15,7 @@ import (
 	"io"
 	"sync"
 
-	"gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/config"
 )
 
 // Class is a stream priority class.

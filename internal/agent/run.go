@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"gotunnel/internal/daemon"
-	"gotunnel/internal/paths"
-	"gotunnel/internal/proto"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/daemon"
+	"github.com/sontran0410/gotunnel/internal/paths"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 // AutoIdleExit is the idle exit of an agentd started on demand by a relay.

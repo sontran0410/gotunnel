@@ -13,10 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"gotunnel/internal/client"
-	"gotunnel/internal/config"
-	"gotunnel/internal/service"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/client"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/service"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 type doctor struct{ failures int }

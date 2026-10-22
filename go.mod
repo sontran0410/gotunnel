@@ -1,4 +1,4 @@
-module gotunnel
+module github.com/sontran0410/gotunnel
 
 go 1.25
 

@@ -14,7 +14,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"gotunnel/internal/paths"
+	"github.com/sontran0410/gotunnel/internal/paths"
 )
 
 // Forward modes.

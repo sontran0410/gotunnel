@@ -160,4 +160,4 @@ Example: `curl --unix-socket ~/.gotunnel/run/ctl.sock http://x/status`.
 - **Additive JSON fields are compatible.** Go's `encoding/json` ignores unknown fields, and a missing field decodes as its zero value. Make sure the zero value means "old behaviour".
 - **A new `op` is compatible** only if old peers can answer it with an error response. Old agents reply `ok:false` with "unknown operation".
 - **Anything else requires bumping `version.Proto`:** changing frame types or layout, offsets or ACK semantics, the preamble, or yamux settings that change behaviour on the wire. An agent rejects mismatched clients with `proto`, and users must then run `install-agent`.
-- `version.Version` (from `git describe`) is informational. A mismatch only produces a warning and an automatic agentd restart when it is idle.
+- `version.Version` (the module version from the build info) is informational. A mismatch only produces a warning and an automatic agentd restart when it is idle.

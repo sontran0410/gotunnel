@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/proto"
 )
 
 // ID identifies a session.

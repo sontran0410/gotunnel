@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gotunnel/internal/config"
-	"gotunnel/internal/netutil"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/netutil"
 )
 
 // startSource runs a server that sends data as fast as the client reads it.

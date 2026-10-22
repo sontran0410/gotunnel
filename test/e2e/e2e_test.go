@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"gotunnel/internal/client"
-	"gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/client"
+	"github.com/sontran0410/gotunnel/internal/proto"
 )
 
 var bin string
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	bin = filepath.Join(dir, "gotunnel")
-	if out, err := exec.Command("go", "build", "-race", "-o", bin, "gotunnel/cmd/gotunnel").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-race", "-o", bin, "github.com/sontran0410/gotunnel/cmd/gotunnel").CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "build failed: %v\n%s", err, out)
 		os.Exit(1)
 	}

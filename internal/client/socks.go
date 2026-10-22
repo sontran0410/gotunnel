@@ -7,7 +7,7 @@ import (
 	"net"
 	"strconv"
 
-	"gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/proto"
 )
 
 // SOCKS5 (RFC 1928), CONNECT only, no authentication. Domain names are passed

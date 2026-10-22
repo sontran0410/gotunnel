@@ -7,7 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"gotunnel/internal/client"
+	"github.com/sontran0410/gotunnel/internal/client"
 )
 
 func printStatus(w io.Writer, st *client.Status) {

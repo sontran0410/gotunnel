@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 const usage = `gotunnel - persistent tunnels over a slow, multi-hop ssh path

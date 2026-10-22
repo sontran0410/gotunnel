@@ -15,13 +15,13 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"gotunnel/internal/config"
-	"gotunnel/internal/daemon"
-	"gotunnel/internal/proto"
-	"gotunnel/internal/sched"
-	"gotunnel/internal/transport"
-	"gotunnel/internal/tunnel"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/daemon"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/sched"
+	"github.com/sontran0410/gotunnel/internal/transport"
+	"github.com/sontran0410/gotunnel/internal/tunnel"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 // Client is the client daemon.

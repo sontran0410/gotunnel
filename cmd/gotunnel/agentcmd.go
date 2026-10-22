@@ -12,11 +12,11 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"gotunnel/internal/agent"
-	"gotunnel/internal/daemon"
-	"gotunnel/internal/paths"
-	"gotunnel/internal/proto"
-	"gotunnel/internal/service"
+	"github.com/sontran0410/gotunnel/internal/agent"
+	"github.com/sontran0410/gotunnel/internal/daemon"
+	"github.com/sontran0410/gotunnel/internal/paths"
+	"github.com/sontran0410/gotunnel/internal/proto"
+	"github.com/sontran0410/gotunnel/internal/service"
 )
 
 func cmdAgent(args []string) error {

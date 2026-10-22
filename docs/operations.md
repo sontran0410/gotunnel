@@ -83,7 +83,7 @@ Every command accepts `-h`. Exit codes: 0 ok, 1 error, 2 usage, 3 "not running" 
 | `gotunnel forward rm NAME` / `forward ls` | |
 | `gotunnel reverse add NAME --remote-listen A --target B [--priority P]` / `reverse rm NAME` | Runtime only |
 | `gotunnel service install\|uninstall\|status [-c file]` | launchd (macOS) or systemd --user (Linux), with crontab `@reboot` as a fallback. `install` stops a manually started client first |
-| `gotunnel install-agent [-c file] [--binary file]` | Uploads the agent through ssh in one round trip. It uses the embedded Linux build for the destination's architecture, or `--binary` |
+| `gotunnel install-agent [-c file] [--binary file]` | Uploads the agent through ssh in one round trip. The binary is taken from the first available source: `--binary`; the Linux agent embedded by `make build`; this binary itself when the destination has the same OS and architecture; or a build of the same module version made with the local Go toolchain (binaries from `go install` embed no agent) |
 | `gotunnel doctor [-c file]` | Checks the config, ssh, the resolved jump route (`ssh -G`), ProxyCommand programs, the daemon, listen ports, the service, and the agent version over ssh |
 | `gotunnel version` | |
 

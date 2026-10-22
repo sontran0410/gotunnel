@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	"gotunnel/internal/client"
-	"gotunnel/internal/config"
-	"gotunnel/internal/control"
-	"gotunnel/internal/daemon"
-	"gotunnel/internal/paths"
-	"gotunnel/internal/service"
-	"gotunnel/internal/transport"
-	"gotunnel/internal/version"
+	"github.com/sontran0410/gotunnel/internal/client"
+	"github.com/sontran0410/gotunnel/internal/config"
+	"github.com/sontran0410/gotunnel/internal/control"
+	"github.com/sontran0410/gotunnel/internal/daemon"
+	"github.com/sontran0410/gotunnel/internal/paths"
+	"github.com/sontran0410/gotunnel/internal/service"
+	"github.com/sontran0410/gotunnel/internal/transport"
+	"github.com/sontran0410/gotunnel/internal/version"
 )
 
 func configFlag(fs *flag.FlagSet) *string {
