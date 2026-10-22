@@ -1,0 +1,55 @@
+# gotunnel client configuration. Copy to ~/.config/gotunnel/config.yaml.
+
+ssh:
+  # An alias from ~/.ssh/config that already reaches the destination in one
+  # command (ProxyJump / ProxyCommand such as "openssl s_client -quiet -connect ...").
+  host: prod-dest
+  # Compress the ssh stream (good for slow links, useless for already
+  # compressed or encrypted traffic).
+  compression: true
+  # extra_args: ["-F", "/path/to/other/ssh_config"]
+  # remote_command: "~/.gotunnel/bin/gotunnel agent stdio"
+
+connection:
+  connect_timeout: 3m    # time allowed for ssh through the jump chain plus the handshake
+  ping_interval: 10s
+  dead_after: 45s        # nothing received for this long: the link is dead, reconnect
+  idle_timeout: 15m      # close the transport after this long unused (only without "always" forwards)
+  session_ttl: 30m       # how long the agent keeps connections open while the link is down
+  replay_buffer: 8MiB    # upper limit for bytes in flight
+  max_inflight: 64KiB    # starting in-flight limit (tuned automatically from RTT)
+  # adaptive_inflight: true
+
+daemon:
+  log_file: ~/.gotunnel/logs/client.log
+  log_level: info
+
+forwards:
+  # ssh to the destination itself through the tunnel: ssh -p 2222 localhost
+  - name: dest-ssh
+    listen: 127.0.0.1:2222
+    target: 127.0.0.1:22
+    mode: always            # keep the transport up permanently
+    priority: interactive   # keystrokes go before bulk transfers
+
+  # Anything reachable from the destination works as a target.
+  - name: postgres
+    listen: 127.0.0.1:5432
+    target: db.internal:5432
+    mode: on-demand         # transport comes up on first use
+
+  - name: backups
+    listen: 127.0.0.1:8873
+    target: 127.0.0.1:873
+    priority: bulk          # may use spare bandwidth only
+
+socks:
+  # SOCKS5 proxy for ad-hoc access to any host:port on the destination side.
+  # Host names are resolved on the destination.
+  - listen: 127.0.0.1:1080
+
+reverse:
+  # The destination connects to 127.0.0.1:8080 and reaches 127.0.0.1:3000 here.
+  - name: my-web
+    remote_listen: 127.0.0.1:8080
+    target: 127.0.0.1:3000
