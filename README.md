@@ -50,7 +50,7 @@ go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest
 
 This puts `gotunnel` in `$(go env GOPATH)/bin` (or `$GOBIN`). Binaries installed this way do not embed the Linux agent. When `gotunnel install-agent` needs one, it builds the same version for the destination with your Go toolchain, so `go` must be on your PATH and able to download modules.
 
-Alternatively, build from a checkout with `make build`. That produces `bin/gotunnel` with the Linux amd64/arm64 agents embedded, so no Go toolchain is needed afterwards.
+Alternatively, build from a checkout with `make build`. That produces `bin/gotunnel` with the Linux amd64/arm64 agents embedded, so no Go toolchain is needed afterwards. `make dist` builds such binaries for linux and darwin on amd64 and arm64 (`dist/gotunnel-<version>-<os>-<arch>`, with `SHA256SUMS`), for machines without Go.
 
 ## Quick start
 

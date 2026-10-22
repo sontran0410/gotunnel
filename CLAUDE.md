@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `go test -race -run TestName ./internal/client/` — runs a single test.
 - `make e2e` — the real binary with a fake ssh: install-agent, daemon, control API, relay, auto-started agentd.
 - `make build` — `bin/gotunnel` with the Linux agents embedded. `go build ./cmd/gotunnel` and `go install github.com/sontran0410/gotunnel/cmd/gotunnel@latest` build without them, and `install-agent` then cross-compiles the agent with the local Go toolchain.
+- `make dist` — release binaries for linux/darwin × amd64/arm64 plus `SHA256SUMS` in `dist/`. Run it on a clean tagged commit so the binaries report that version.
 - `GOTOOLCHAIN=go1.25.0 go test -short ./...` — checks the oldest supported Go (the `go` directive is 1.25; 1.25.0, 1.26.5 and 1.27.3 are tested).
 - `make lab-test` — Docker lab with real sshd, a TLS ProxyCommand hop and toxiproxy faults.
   - Needs Docker; on this Mac that is `colima start`. Stop Colima again when done.

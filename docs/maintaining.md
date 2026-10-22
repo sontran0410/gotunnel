@@ -234,7 +234,8 @@ Tags are what `go install …@latest` resolves to. They follow semantic versioni
    # then run "$GOBIN/gotunnel version"; it must print vX.Y.Z
    ```
    `@latest` switches to the new tag once the module proxy refreshes its list (usually within minutes).
-4. Never move or delete a published tag. The Go checksum database has already recorded its contents, so a moved tag breaks `go install` for everyone. Publish a new version instead.
+4. Optionally run `make dist` on the tagged commit (clean tree) to produce binaries for linux and darwin, amd64 and arm64, with `SHA256SUMS`. Use them for machines without Go, or attach them to a GitHub release (`gh release create vX.Y.Z dist/gotunnel-vX.Y.Z-* dist/SHA256SUMS`).
+5. Never move or delete a published tag. The Go checksum database has already recorded its contents, so a moved tag breaks `go install` for everyone. Publish a new version instead.
 
 ## 8. Known gaps and ideas
 
